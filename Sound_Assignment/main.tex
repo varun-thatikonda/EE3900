@@ -1,0 +1,1929 @@
+\documentclass[journal,12pt,twocolumn]{IEEEtran}
+
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{gensymb}
+\usepackage{graphicx}
+\usepackage{txfonts}         
+\usepackage{listings}
+\usepackage{lstautogobble}
+\usepackage{mathtools}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{polynom}
+\usepackage{siunitx}
+\usepackage{verbatim}
+
+\newcommand{\solution}{\noindent \textbf{Solution: }}
+\providecommand{\pr}[1]{\ensuremath{\Pr\left(#1\right)}}
+\providecommand{\brak}[1]{\ensuremath{\left(#1\right)}}
+\providecommand{\cbrak}[1]{\ensuremath{\left\{#1\right\}}}
+\providecommand{\sbrak}[1]{\ensuremath{\left[#1\right]}}
+\providecommand{\mean}[1]{E\left[ #1 \right]}
+\providecommand{\var}[1]{\mathrm{Var}\left[ #1 \right]}
+\providecommand{\der}[1]{\mathrm{d} #1}
+\providecommand{\gauss}[2]{\mathcal{N}\ensuremath{\left(#1,#2\right)}}
+\providecommand{\mbf}{\mathbf}
+\providecommand{\abs}[1]{\left\vert#1\right\vert}
+\providecommand{\norm}[1]{\left\lVert#1\right\rVert}
+\providecommand{\z}[1]{{\mathcal{Z}}\{#1\}}
+\providecommand{\ztrans}{\overset{\mathcal{Z}}{ \rightleftharpoons}}
+
+\providecommand{\parder}[2]{\frac{\partial}{\partial #2} \brak{#1}}
+
+\let\StandardTheFigure\thefigure
+\let\vec\mathbf
+
+\numberwithin{equation}{section}
+\renewcommand{\thefigure}{\theenumi}
+\renewcommand\thesection{\arabic{section}}
+
+\newcommand{\myvec}[1]{\ensuremath{\begin{pmatrix}#1\end{pmatrix}}}
+\newcommand{\mymat}[1]{\ensuremath{\begin{bmatrix}#1\end{bmatrix}}}
+\newcommand{\mydet}[1]{\ensuremath{\begin{vmatrix}#1\end{vmatrix}}}
+\newcommand{\define}{\stackrel{\triangle}{=}}
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\makeatletter
+\def\pld@CF@loop#1+{%
+    \ifx\relax#1\else
+        \begingroup
+          \pld@AccuSetX11%
+          \def\pld@frac{{}{}}\let\pld@symbols\@empty\let\pld@vars\@empty
+          \pld@false
+          #1%
+          \let\pld@temp\@empty
+          \pld@AccuIfOne{}{\pld@AccuGet\pld@temp
+                            \edef\pld@temp{\noexpand\pld@R\pld@temp}}%
+           \pld@if \pld@Extend\pld@temp{\expandafter\pld@F\pld@frac}\fi
+           \expandafter\pld@CF@loop@\pld@symbols\relax\@empty
+           \expandafter\pld@CF@loop@\pld@vars\relax\@empty
+           \ifx\@empty\pld@temp
+               \def\pld@temp{\pld@R11}%
+           \fi
+          \global\let\@gtempa\pld@temp
+        \endgroup
+        \ifx\@empty\@gtempa\else
+            \pld@ExtendPoly\pld@tempoly\@gtempa
+        \fi
+        \expandafter\pld@CF@loop
+    \fi}
+\def\pld@CMAddToTempoly{%
+    \pld@AccuGet\pld@temp\edef\pld@temp{\noexpand\pld@R\pld@temp}%
+    \pld@CondenseMonomials\pld@false\pld@symbols
+    \ifx\pld@symbols\@empty \else
+        \pld@ExtendPoly\pld@temp\pld@symbols
+    \fi
+    \ifx\pld@temp\@empty \else
+        \pld@if
+            \expandafter\pld@IfSum\expandafter{\pld@temp}%
+                {\expandafter\def\expandafter\pld@temp\expandafter
+                    {\expandafter\pld@F\expandafter{\pld@temp}{}}}%
+                {}%
+        \fi
+        \pld@ExtendPoly\pld@tempoly\pld@temp
+        \pld@Extend\pld@tempoly{\pld@monom}%
+    \fi}
+\makeatother
+
+\lstset {
+	frame=single, 
+	breaklines=true,
+	columns=fullflexible,
+	autogobble=true
+}             
+                               
+\title{Digital Signal Processing \\ \Large EE3900: Linear Systems and Signal Processing \\ \large Indian Institute of Technology Hyderabad}
+\author{T Varun Reddy \\ \normalsize ES20BTECH11028 \\ \vspace*{20pt} \normalsize 1 Aug 2022}
+
+
+\begin{document}
+
+	\maketitle
+	
+	\section{Software Installation}
+	Install the necessary packages by running the following commands
+	\begin{lstlisting}
+		sudo dnf up
+		sudo dnf install libffi-devel libsndfile python3-scipy  python3-numpy python3-matplotlib 
+		python -m pip install cffi pysoundfile 
+	\end{lstlisting}
+
+	\section{Digital Filter}
+	\begin{enumerate}[label=\thesection.\arabic*,ref=\thesection.\theenumi]
+	\item \label{prob:input} Download the sound file from  
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/Sound_Noise.wav
+	\end{lstlisting}
+	
+	\item \label{prob:spectrogram} You will find a spectrogram at \href{https://academo.org/demos/spectrum-analyzer}{\url{https://academo.org/demos/spectrum-analyzer}}. Upload the sound file that you downloaded in Problem \ref{prob:input} in the spectrogram  and play.  Observe the spectrogram. What do you find?
+	
+	\solution There is a lot of background noise and the key strokes are audible. This noise is represented by the large blue and red regions spread from 440 Hz to beyond 18.9 kHz. The key tones are represented by the yellow lines that are present in the lower regions between 440 Hz and 5.1 kHz.
+	
+	\item \label{prob:output} Write the python code for removal of out of band noise and execute the code. 
+	
+	\solution Download the python code for the reduction of noise by executing the following command
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/2.3.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 2.3.py
+	\end{lstlisting}
+	
+	Play the newly created audio file by executing
+	\begin{lstlisting}
+		aplay Sound_With_Reduced_Noise.wav
+	\end{lstlisting}
+	
+	\item The output of the python script in Problem \ref{prob:output} is the audio file Sound\_With\_Reduced\_Noise.wav. Play the file in the spectrogram in Problem \ref{prob:spectrogram}. What do you observe?
+	
+	\solution The noise has been reduced considerably and the key strokes are not audible anymore. The blue region is restricted between 440 Hz and 5.1 kHz and there are no signals beyond this range.
+	
+	
+	\end{enumerate}
+	
+	\section{Difference Equation}
+	\begin{enumerate}[label=\thesection.\arabic*,ref=\thesection.\theenumi]
+	\item Let
+	\begin{equation}
+		\label{eq:filter_input}
+		x(n) = \cbrak{\underset{\uparrow}{1},2,3,4,2,1}
+	\end{equation}
+	Sketch $x(n)$
+	\item Let
+	\begin{multline}
+		\label{eq:iir_filter}
+		y(n) + \frac{1}{2}y(n-1) = x(n) + x(n-2), \\
+ 		y(n) = 0, n < 0
+	\end{multline}
+	
+	Sketch $y(n)$
+
+	\solution Download the following Python code that plots Fig. \ref{fig-3.2}.
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/3.2.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 3.2.py
+	\end{lstlisting}
+
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/3.2.png}
+		\caption{The sketches of $x(n)$ and $y(n)$}
+		\label{fig-3.2}	
+	\end{figure}
+	
+	\item Repeat the above exercise using a C code.
+	
+	\solution Download the following C code that generates the values of $y(n)$
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/3.3.c
+	\end{lstlisting}
+	
+	Compile and run the C program by executing the following
+	\begin{lstlisting}
+		cc 3.3.c
+		./a.out
+	\end{lstlisting}
+	
+	Download the following Python code that plots Fig. \ref{fig-3.3} using the data generated by the above C code
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/3.3.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 3.3.py
+	\end{lstlisting}
+
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/3.3.png}
+		\caption{Plot of $y(n)$}
+		\label{fig-3.3}	
+	\end{figure}
+	
+	\end{enumerate}
+	
+	\section{$Z$-transform}
+	\begin{enumerate}[label=\thesection.\arabic*]
+	\item The $Z$-transform of $x(n)$ is defined as
+	\begin{equation}
+		\label{eq:z_trans}
+		X(z)={\mathcal {Z}}\{x(n)\}=\sum _{n=-\infty }^{\infty }x(n)z^{-n}
+	\end{equation}
+	Show that
+	\begin{equation}
+		\label{eq:shift1}
+		{\mathcal {Z}}\{x(n-1)\} = z^{-1}X(z)
+	\end{equation}
+	and find
+	\begin{equation}
+		{\mathcal {Z}}\{x(n-k)\} 
+	\end{equation}
+	
+	\solution 
+	\begin{align}
+		{\mathcal {Z}}\{x(n-1)\} &= \sum _{n=-\infty }^{\infty }x(n - 1)z^{-n} 
+	\end{align}
+	
+	Substitute $n - 1 = m$
+	\begin{align}
+		{\mathcal {Z}}\{x(n-1)\} &=  \sum _{m=-\infty }^{\infty }x(m)z^{-(m+1)} \\
+		&= z^{-1} \sum _{m=-\infty }^{\infty }x(m)z^{-m} \\
+		&= z^{-1} {\mathcal {Z}}\{x(m)\} \\	
+		&= z^{-1} X(z) \\
+		{\mathcal {Z}}\{x(n-k)\} &=  \sum _{n=-\infty }^{\infty }x(n - k)z^{-n} \\
+		&=  \sum _{m=-\infty }^{\infty }x(m)z^{-(m+k)} \\
+		&= z^{-k} \sum _{m=-\infty }^{\infty }x(m)z^{-m} \\
+		&= z^{-k} X(z)
+	\end{align}	
+	
+	\item Obtain $X(z)$ for $x(n)$ defined in problem \ref{eq:filter_input}
+	
+	\solution For the $x(n)$ given in \eqref{eq:filter_input}
+	\begin{align}
+		X(z) &= \z{x(n)} \\
+		&= \sum _{n=0}^{5}x(n)z^{-n} \\
+		&= 1 + 2z^{-1} + 3z^{-2} + 4z^{-3} + 2z^{-4} + z^{-5}
+	\end{align}
+	
+	Also
+	\begin{align}
+		\z{x(n-k)} &= z^{-k} X(z)
+	\end{align}
+	\begin{multline}
+		\z{x(n-k)} = z^{-k} + 2z^{-(k+1)} + 3z^{-(k+2)} \\+ 4z^{-(k+3)} + 2z^{-(k+4)} + z^{-(k+5)}
+	\end{multline}
+	
+	\item Find
+	\begin{equation}
+		H(z) = \frac{Y(z)}{X(z)}
+	\end{equation}
+
+	from  \eqref{eq:iir_filter} assuming that the $Z$-transform is a linear operation.
+
+	\solution 
+	\begin{align}
+		y(n) + \frac{1}{2}y(n-1) = x(n) + x(n-2)
+	\end{align}
+	
+	On applying the $Z$-transform on both sides of the equation, we get
+	\begin{align}
+		{\mathcal {Z}}\cbrak{y(n) + \frac{1}{2}y(n-1)} = {\mathcal {Z}}\{x(n) + x(n-2)\}
+	\end{align}
+	
+	Since we are assuming that the $Z$-transform is a linear operation,
+	\begin{align}
+		\z{y(n)} + \frac12 \z{y(n-1)} &= \z{x(n)} + \z{x(n-2)} \\
+		\implies Y(z) + \frac12 z^{-1} Y(z) &= X(z) + z^{-2} X(z) \\
+		\implies Y(z) \brak{1 + \frac12 z^{-1}} &= X(z) (1 + z^{-2}) \\
+		\therefore H(z) = \frac{Y(z)}{X(z)} &= \frac{1 + z^{-2}}{1 + \frac12 z^{-1}} \label{eq:freq_resp}
+	\end{align}
+	
+	\item Find the Z transform of 
+	\begin{equation}
+		\delta(n) =
+		\begin{cases}
+			1 & n = 0 \\
+			0 & \text{otherwise}
+		\end{cases}
+	\end{equation}
+	and show that the $Z$-transform of
+	\begin{equation}
+	\label{eq:unit_step}
+	u(n) =
+	\begin{cases}
+		1 & n \ge 0 \\
+		0 & \text{otherwise}	
+	\end{cases}
+	\end{equation}
+	is
+	\begin{equation}
+		U(z) = \frac{1}{1-z^{-1}} \quad \abs{z} > 1
+	\end{equation}
+	
+	\solution 
+	\begin{align}
+		\z{\delta(n)} &= \sum _{n=-\infty }^{\infty }\delta(n)z^{-n} \\
+		&= \delta(0) z^{-0} \\
+		&= 1 
+	\end{align}
+	\begin{align}
+		\z{u(n)} &= \sum _{n=-\infty }^{\infty } u(n)z^{-n} \\
+		&= \sum _{n=0}^{\infty } \brak{z^{-1}}^n 
+	\end{align}
+	
+	This is the sum of an infinite geometric progression with first term $1$ and common ratio $z^{-1}$. The sum converges when
+	\begin{equation}
+		\abs{z^{-1}} < 1 \iff \abs{z} > 1
+	\end{equation}
+	
+	Therefore,
+	\begin{equation}
+		U(z) = \z{u(n)} = \frac{1}{1 - z^{-1}} \quad \abs{z} > 1
+	\end{equation}
+
+	\item Show that 
+	\begin{equation}
+		\label{eq:anun}
+		a^nu(n) \ztrans \frac{1}{1-az^{-1}} \quad \abs{z} > \abs{a}
+	\end{equation}
+	
+	\solution
+	\begin{align}
+		\z{a^nu(n)} &= \sum _{n=-\infty }^{\infty } a^nu(n)z^{-n} \\
+		&= \sum _{n=0}^{\infty } \brak{az^{-1}}^{n} 
+	\end{align}
+	
+	This is the sum of an infinite geometric progression with first term $1$ and common ratio $az^{-1}$. The sum converges when
+	\begin{equation}
+		\abs{az^{-1}} < 1 \iff \abs{z} > \abs{a}
+	\end{equation}
+	
+	Therefore,
+	\begin{equation}
+		\z{a^nu(n)} = \frac{1}{1-az^{-1}} \quad \abs{z} > \abs{a}
+	\end{equation}
+	
+	\item Let
+	\begin{equation}
+		H\brak{e^{\j \omega}} = H\brak{z = e^{\j \omega}}.
+	\end{equation}
+	Plot $\abs{H\brak{e^{\j \omega}}}$.  Is it periodic? If so, find the period.  $H(e^{\j \omega})$ is known as the {\em Discrete-Time Fourier Transform} (DTFT) of $h(n)$
+	
+	\solution
+	\begin{align}
+		H\brak{e^{\j \omega}} &= \frac{1 + e^{-2\j\omega}}{1 + \frac12 e^{-\j\omega}} \\
+		\implies \abs{H\brak{e^{\j \omega}}} &= \frac{\abs{1 + \cos2\omega - \j\sin2\omega}}{\abs{1 + \frac12 \cos\omega - \frac12 \sin\omega}} \\
+		&= \sqrt{\frac{(1 + \cos2\omega)^2 + (\sin2\omega)^2}{(1 + \frac12 \cos\omega)^2 + (\frac12 \sin\omega)^2}} \\
+		&= \sqrt{\frac{2 + 2\cos2\omega}{\frac54 + \cos\omega}} \\
+		&= \sqrt{\frac{2(2\cos^2\omega)4}{5 + 4\cos\omega} } \\
+		&= \frac{4\abs{\cos\omega}}{\sqrt{5 + 4\cos\omega}}
+	\end{align}
+	
+	Download the following Python code that plots Fig. \ref{fig-4.5}.
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/4.5.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 4.5.py
+	\end{lstlisting}
+
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/4.5.png}
+		\caption{The plot of the magnitude of the discrete-time Fourier transform of $x(n)$}
+		\label{fig-4.5}	
+	\end{figure}
+
+	From the plot, it is clear that the magnitude of the discrete-time Fourier transform of $x(n)$ is symmetric about $x = 0$ (even function) and is periodic with a period of $2\pi$ which is consistent with what we obtained theoretically.
+	\begin{align}
+		e^{\j \brak{\omega + 2\pi}} &= e^{\j \omega} \\
+		\implies H\brak{e^{\j \brak{\omega + 2\pi}}} &= H\brak{e^{\j \omega}}
+	\end{align}	 
+	
+	The period of $\abs{\cos\omega}$ is $\pi$ and that of $\sqrt{5 + 4\cos\omega}$ is $2\pi$. Therefore, the period of their quotient is given by
+	\begin{equation}
+		\textrm{lcm}(\pi, 2\pi) = 2\pi
+	\end{equation}
+	
+	Also, the function attains a maximum value of $4$ at 
+	\begin{align}
+		x = (2n + 1)\pi, \quad n \in \mathbb{Z}
+	\end{align} 
+	
+	and a minimum of $0$ at 
+	\begin{align} 
+		x = \brak{2m + 1}\frac{\pi}{2}, \quad m \in \mathbb{Z}\quad 
+	\end{align}
+	
+	\item Express $h(n)$ in terms of $H\brak{e^{\j\omega}}$	
+	
+	\solution 
+	\begin{align}
+		&\int_{-\pi}^{\pi} H(e^{\j\omega}) e^{\j\omega n} \der{\omega} \\
+		&= \int_{-\pi}^{\pi} \sum_{k=-\infty}^\infty h(k)  e^{-\j\omega k} e^{\j\omega n} \der{\omega} \\
+		&= \sum_{k=-\infty}^\infty h(k) \int_{-\pi}^{\pi} e^{\j\omega(n-k)} \der{\omega}
+	\end{align}
+	
+	Now,
+	\begin{align}
+		 \int_{-\pi}^{\pi} e^{\j\omega(n-k)} \der{\omega} 
+		 &= \begin{cases}
+		 	\int_{-\pi}^\pi \der{\omega} & n-k = 0 \\
+		 	\left.\frac{\exp\brak{\j\omega(n-k)}}{\j(n-k)}\right|_{-\pi}^\pi & n-k \ne 0
+		 \end{cases} \\		 
+		 &= \begin{cases}
+		 	2\pi & n-k = 0 \\
+		 	0 & n-k \ne 0
+		 \end{cases} \\
+		 &= 2\pi \delta(n-k)
+	\end{align}
+	
+	Thus,
+	\begin{align}
+		\int_{-\pi}^{\pi} H(e^{\j\omega}) e^{\j\omega n} \der{\omega} &= 2\pi\sum_{k=-\infty}^\infty h(k) \delta(n-k) \\
+		&= 2\pi h(n) * \delta(n) \\
+		&= 2\pi h(n)
+	\end{align}
+	
+	Therefore, $h(n)$ is given by the inverse DTFT (IDTFT) of $H\brak{e^{\j\omega}}$
+	\begin{align}
+		h(n) &= \frac{1}{2\pi} \int_{-\pi}^{\pi} H(e^{\j\omega}) e^{\j\omega n} \der{\omega} 
+	\end{align}
+	
+	\end{enumerate}
+	
+	\section{Impulse Response}
+	\begin{enumerate}[label=\thesection.\arabic*]
+	\item Using long division, find
+	\begin{align}
+		h(n), \quad n < 5
+	\end{align}
+	for $H(z)$ in \eqref{eq:freq_resp}
+	
+	\solution 
+	\begin{equation}
+		H(z) = \frac{1 + z^{-2}}{1 + \frac12 z^{-1}} \qquad \abs{z} > \frac12
+	\end{equation}
+	Substitute $z^{-1} = x$
+	
+	\polylongdiv{1+x^2}{1+\frac12 x}
+	
+	\begin{align}
+		&\implies 1 + z^{-2} = \brak{1 + \frac12 z^{-1}}\brak{-4 + 2z^{-1}} + 5 \\
+		&\implies H(z) = -4 + 2z^{-1} + \frac{5}{1 + \frac12 z^{-1}}
+	\end{align}
+	
+	\begin{align}
+		\frac{5}{1 + \frac12 z^{-1}} &= 5 \brak{1 + \frac12 z^{-1}}^{-1} \\
+		&= 5 \sum_{n=0}^\infty \brak{-\frac{z^{-1}}{2}}^n
+	\end{align}
+	
+	This sum of an infinite geometric progression converges when $\abs{z} > \frac12$
+	\begin{multline}
+		H(z) = -4 + 2z^{-1} + 5 - \frac{5}{2}z^{-1} + \frac{5}{4}z^{-2}\\ - \frac{5}{8}z^{-3}  + \frac{5}{16}z^{-4} - \frac{5}{32}z^{-5} + \cdots
+	\end{multline}
+	
+	\begin{multline}
+		H(z) = 1  - \frac{1}{2}z^{-1} + \frac{5}{4}z^{-2}\\ - \frac{5}{8}z^{-3}  + \frac{5}{16}z^{-4} - \frac{5}{32}z^{-5} + \cdots
+	\end{multline}
+	
+	But
+	\begin{align}
+		H(z) = \sum_{n=-\infty}^\infty h(n) z^{-n}
+	\end{align}
+	
+	Therefore, by comparing coefficients
+	\begin{align}
+		h(n) = 
+		\begin{cases}
+			0 & n < 0 \\
+			1 & n = 0 \\
+			-\dfrac12 & n = 1 \\
+			\dfrac{5}{4} & n = 2 \\
+			-\dfrac{5}{8} & n = 3 \\
+			\dfrac{5}{16} & n = 4 \\
+		\end{cases}
+	\end{align}
+	
+	We have obtained that
+	\begin{align}
+		H(z) &= 1 - \frac12 z^{-1} + 5\sum_{n=2}^\infty \brak{-\frac{z^{-1}}{2}}^n \\
+		&= 1 - \frac12 z^{-1} + \sum_{n=2}^\infty 5\brak{-\frac{1}{2}}^n z^{-n}
+	\end{align}
+	
+	By comparing coefficients,
+	\begin{align}
+		h(n) = 
+		\begin{cases}
+			0 & n < 0 \\
+			1 & n = 0 \\
+			-\dfrac{1}{2} & n = 1 \\
+			5\brak{-\dfrac{1}{2}}^n & n \ge 2
+		\end{cases}
+ 	\end{align}
+
+	\begin{comment}	
+	Alternatively, on applying the inverse $Z$-transform on both sides of the equation
+	\begin{align}
+		H(z) &\ztrans h(n) \\
+		-4 &\ztrans -4\delta(n) \\
+		2z^{-1} &\ztrans 2\delta(n - 1) \\
+		\frac{5}{1 + \frac12 z^{-1}} &\ztrans 5\brak{-\frac12}^n u(n) \\
+	\end{align}
+	
+	Therefore,
+	\begin{equation}
+		h(n) = -4\delta(n) + 2\delta(n - 1) + 5\brak{-\frac12}^n u(n)
+	\end{equation}
+	
+	Download the following Python code that plots Fig. \ref{fig-5.1}.
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/5.1.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 5.1.py
+	\end{lstlisting}
+
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/5.1.png}
+		\caption{Plot of $h(n)$}
+		\label{fig-5.1}	
+	\end{figure} 
+	\end{comment}
+	
+	\item \label{prob:impulse_resp}
+	Find an expression for $h(n)$ using $H(z)$, given that 
+	\begin{equation}
+		\label{eq:impulse_resp}
+		h(n) \ztrans H(z)
+	\end{equation}
+	and there is a one to one relationship between $h(n)$ and $H(z)$. $h(n)$ is known as the {\em impulse response} of the system defined by \eqref{eq:iir_filter}
+	
+	\solution
+	\begin{align}
+		H(z) &= \frac{1 + z^{-2}}{1 + \frac12 z^{-1}} \qquad \abs{z} > \frac12 \\
+		&= \frac{1}{1 + \frac12 z^{-1}} + \frac{z^{-2}}{1 + \frac12 z^{-1}}
+	\end{align}
+	
+	From \eqref{eq:anun},
+	\begin{align}
+		&\frac{1}{1-az^{-1}} \ztrans a^nu(n)  \quad \abs{z} > \abs{a} \\
+		\implies &\frac{1}{1 + \frac12 z^{-1}} \ztrans \brak{-\frac12}^n u(n) \quad \abs{z} > \frac12 \\
+		\implies &\frac{z^{-2}}{1 + \frac12 z^{-1}} \ztrans \brak{-\frac12}^{n-2} u(n-2) \quad \abs{z} > \frac12
+	\end{align}
+	
+	Since the $Z$-transform is a linear operator, for $\abs{z} > \frac12$
+	\begin{align}
+		H(z) \ztrans \brak{-\frac12}^n u(n) + \brak{-\frac12}^{n-2} u(n-2)
+	\end{align}
+	
+	Therefore, 
+	\begin{align}
+		h(n) = \brak{-\frac12}^n u(n) + \brak{-\frac12}^{n-2} u(n-2)
+	\end{align}
+	
+	\item Sketch $h(n)$. Is it bounded? Justify theoretically.
+	
+	\solution Download the following Python code that plots Fig. \ref{fig-5.2}.
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/5.2.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 5.2.py
+	\end{lstlisting}
+
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/5.2.png}
+		\caption{Plot of $h(n)$}
+		\label{fig-5.2}	
+	\end{figure} 
+	
+	From the plot, it is clear that $h(n)$ is bounded. Theoretically,
+	\begin{align}
+		\abs{u(n)} &\le 1 \\
+		\abs{\brak{-\frac12}^n} &\le 1 \\
+		\implies \abs{\brak{-\frac12}^n u(n)} &\le 1
+	\end{align}
+	
+	Similarly,
+	\begin{align}
+		\abs{\brak{-\frac12}^{n-2} u(n-2)} &\le 1 \\
+		\implies h(n) &\le 2
+	\end{align}
+	
+	Therefore $h(n)$ is bounded.
+	
+	\item Is it convergent? Justify using the ratio test.
+	
+	\solution Using the ratio test for convergence
+	\begin{align}
+		\lim_{n \to \infty} \abs{\frac{h(n+1)}{h(n)}} &= \lim_{n \to \infty} \abs{\frac{\brak{-\frac12}^{n-1} \brak{\frac14 + 1}}{\brak{-\frac12}^{n-2} \brak{\frac14 + 1}}} \\
+		&= \lim_{n \to \infty} \abs{-\frac12} \\
+		&= \frac{1}{2} < 1
+	\end{align}
+	
+	Therefore, $h(n)$ is convergent.
+	
+	\item The system with $h(n)$ is defined to be stable if
+	\begin{equation}
+		\sum_{n=-\infty}^{\infty}h(n) < \infty
+	\end{equation}
+	Is the system defined by \eqref{eq:iir_filter} stable for the impulse response in \eqref{eq:impulse_resp}?	
+	
+	\solution
+	\begin{multline}
+		\sum_{n=-\infty}^{\infty}h(n) = \sum_{n=-\infty}^{\infty} \brak{-\frac12}^n u(n) \\
+		+ \sum_{n=-\infty}^{\infty} \brak{-\frac12}^{n-2} u(n-2)
+	\end{multline}
+	\begin{align}
+		\sum_{n=-\infty}^{\infty}h(n) = \sum_{n=0}^{\infty}\brak{-\frac12}^n + \sum_{n=2}^{\infty}\brak{-\frac12}^{n-2}
+	\end{align}
+	
+	These are both sums of infinite geometric progressions with first terms $1$ and common ratios $-\frac12$
+	\begin{align}
+		\sum_{n=-\infty}^{\infty}h(n) &= \frac{1}{1 - \brak{-\frac12}} + \frac{1}{1 - \brak{-\frac12}} \\
+		&= \frac{4}{3} < \infty
+	\end{align}
+	
+	Therefore, the system is stable. 
+	
+	\item Verify the above result using a Python code. 
+	
+	\solution The stability has been verified in the following code
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/5.3.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 5.3.py
+	\end{lstlisting}
+	
+	\item Compute and sketch $h(n)$ using 
+	\begin{equation}
+		\label{eq:iir_filter_h}
+		h(n) + \frac{1}{2}h(n-1) = \delta(n) + \delta(n-2)
+	\end{equation}
+
+	This is the definition of $h(n)$
+	
+	\solution 
+	\begin{equation}
+		h(0) = 1
+	\end{equation}
+	
+	Now, for $n = 1$,
+	\begin{align}
+		h(1) + \frac12 h(0) &= \delta(1) + \delta(-1) = 0 \\
+		\implies h(1) &= - \frac{1}{2} h(0) = -\frac{1}{2}
+	\end{align}
+	
+	For $n = 2$,
+	\begin{align}
+		h(2) + \frac12 h(1) &= \delta(2) + \delta(0) = 1 \\
+		\implies h(2) &= 1 - \frac{1}{2} h(1) = \frac{5}{4}
+	\end{align}
+	
+	For $n > 2$, the right hand side of the equation is always zero. Thus,
+	\begin{align}
+		h(n) &= -\frac{1}{2} h(n-1) \qquad n > 2 \\
+		h(3) &= \frac{5}{4} \brak{-\frac12} \\
+		h(4) &= \frac{5}{4} \brak{-\frac12}^2 \\
+		&~\vdots \\
+		h(n) &= \frac{5}{4} \brak{-\frac12}^{n-2}
+	\end{align}
+	
+	Therefore,
+	\begin{align}
+		h(n) = 
+		\begin{cases}
+			1 & n = 0 \\
+			-\dfrac{1}{2} & n = 1 \\
+			\dfrac{5}{4} \brak{-\dfrac12}^{n-2} & n \ge 2
+		\end{cases}
+	\end{align}
+	
+	Thus, it is bounded and convergent to $0$
+	\begin{equation}
+		\lim_{n \to \infty} h(n) = 0
+	\end{equation}
+	
+	Download the following Python code that plots Fig. \ref{fig-5.4}.
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/5.4.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 5.4.py
+	\end{lstlisting}
+
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/5.4.png}
+		\caption{The plot of $h(n)$ from its definition}
+		\label{fig-5.4}	
+	\end{figure}
+	
+	\item Compute 
+	\begin{equation}
+		\label{eq:convolution}
+		y(n) = x(n)*h(n) = \sum_{k=-\infty}^{\infty}x(k)h(n-k)
+	\end{equation}
+
+	Comment. The operation in \eqref{eq:convolution} is known as {\em convolution}
+	
+	\solution
+	\begin{align}
+		x(n)*h(n) &= \sum_{k=-\infty}^{\infty}x(k)h(n-k) \\
+		&= \sum_{k=0}^{5}x(k)h(n-k)
+	\end{align}
+	since $x(k) = 0$ for $k < 0$ and $k > 5$ 
+	
+	Download the following Python code that plots Fig. \ref{fig-5.5}.
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/5.5.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 5.5.py
+	\end{lstlisting}
+
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/5.5.png}
+		\caption{Plot of the convolution of $x(n)$ and $h(n)$}
+		\label{fig-5.5}	
+	\end{figure}
+	
+	The plot is exactly the same as that obtained in Fig. \ref{fig-3.2}. Therefore, we can conclude that
+	\begin{equation}
+		y(n) = x(n)*h(n) 
+	\end{equation}
+	
+	\item Express the above convolution using a Toeplitz matrix.
+	
+	\solution Let 
+	\begin{align}
+		\vec{x} = \myvec{1 \\ 2 \\ 3 \\ 4 \\ 2 \\ 1} \qquad
+		\vec{h} = \myvec{1 \\ -0.5 \\ 1.25 \\ -0.62 \\ 0.31 \\ -0.16}
+	\end{align}
+	
+	Their convolution is given by the product of the following Toeplitz matrix $\vec{T}$
+	\begin{align}
+		&\myvec{
+			1 & 0 & 0 & 0 & 0 & 0 \\
+			-0.5 & 1 & 0 & 0 & 0 & 0 \\
+			1.25 & -0.5 & 1 & 0 & 0 & 0 \\
+			-0.62 & 1.25 & -0.5 & 1 & 0 & 0 \\
+			0.31 & -0.62 & 1.25 & -0.5 & 1 & 0 \\
+			-0.16 & 0.31 & -0.62 & 1.25 & -0.5 & 1 \\
+			0 & -0.16 & 0.31 & -0.62 & 1.25 & -0.5 \\
+			0 & 0 & -0.16 & 0.31 & -0.62 & 1.25 \\
+			0 & 0 & 0 & -0.16 & 0.31 & -0.62 \\
+			0 & 0 & 0 & 0 & -0.16 & 0.31 \\
+			0 & 0 & 0 & 0 & 0 & -0.16 \\
+		} 
+	\end{align}
+	and $\vec{x}$
+	
+	\begin{align}
+		&\vec{y} = \vec{x} \circledast \vec{h} = \vec{Tx} = \myvec{1 \\ 1.5 \\ 3.25 \\ 4.38 \\ 2.81 \\ 3.59 \\ 0.12 \\ 0.78 \\ -0.62 \\ 0 \\ -0.16}
+	\end{align}
+	
+	Download the following Python code for computing the convolution by using a Toeplitz matrix and plotting Fig. \ref{fig-5.9}
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/5.9.py
+	\end{lstlisting}
+	
+	Run the Python code by executing
+	\begin{lstlisting}
+		python 5.9.py
+	\end{lstlisting}
+
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/5.9.png}
+		\caption{Plot of the convolution of $x(n)$ and $h(n)$}
+		\label{fig-5.9}	
+	\end{figure}
+	
+	
+	\item Show that
+	\begin{equation}
+		y(n) =  \sum_{k=-\infty}^{\infty}x(n-k)h(k)
+	\end{equation}
+	
+	\solution We know that
+	\begin{equation}
+		y(n) = x(n)*h(n) = \sum_{k=-\infty}^{\infty}x(k)h(n-k)
+	\end{equation}
+	
+	Substitute $k = n - i$
+	\begin{align}
+		 \sum_{k=-\infty}^{\infty}x(k)h(n-k) &=  \sum_{n - i =-\infty}^{\infty}x(n-i)h(n-(n-i)) \\
+		 &= \sum_{i = \infty}^{-\infty} x(n - i) h(i) \\
+		 &= \sum_{i = -\infty}^{\infty} x(n - i) h(i)
+	\end{align}
+	since the order of limits does not matter for a summation.
+	Thus,
+	\begin{align}
+		\sum_{k=-\infty}^{\infty}x(k)h(n-k) &= \sum_{k=-\infty}^{\infty}x(n-k)h(k) \\
+		\implies x(n) * h(n) &= h(n) * x(n)
+	\end{align}
+	
+	Therefore, convolution is commutative.
+	
+	\end{enumerate}
+	
+	\section{DFT}
+	\begin{enumerate}[label=\thesection.\arabic*]
+	\item Compute
+	\begin{equation}
+		X(k) \define \sum _{n=0}^{N-1}x(n) e^{-\j2\pi kn/N} \quad k = 0,1,\dots, N-1
+	\end{equation}
+	and $H(k)$ using $h(n)$
+	
+	\solution Download the following Python code that plots Fig. \ref{fig-6.1}.
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/6.1.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 6.1.py
+	\end{lstlisting}
+
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/6.1.png}
+		\caption{Plots of the real parts of the discrete Fourier transforms of $x(n)$ and $h(n)$}
+		\label{fig-6.1}	
+	\end{figure}
+	
+	\item Compute 
+	\begin{equation}
+		Y(k) = X(k)H(k)
+	\end{equation}
+	
+	\solution Download the following Python code that plots Fig. \ref{fig-6.2}.
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/6.2.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 6.2.py
+	\end{lstlisting}
+
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/6.2.png}
+		\caption{Plot of $Y(k)$}
+		\label{fig-6.2}	
+	\end{figure}
+
+	\item Compute
+	\begin{equation}
+ 		y\brak{n}={\frac {1}{N}}\sum _{k=0}^{N-1}Y\brak{k}e^{\j 2\pi kn/N} \quad n = 0,1,\dots, N-1
+	\end{equation}
+	
+	\solution Download the following Python code that plots Fig. \ref{fig-6.3}.
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/6.3.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 6.3.py
+	\end{lstlisting}
+
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/6.3.png}
+		\caption{Plot of the inverse discrete Fourier transform of $Y(k)$}
+		\label{fig-6.3}	
+	\end{figure}
+	
+	The plot is exactly the same as that obtained in Fig. \ref{fig-3.2}. Therefore, we conclude that 
+	\begin{align}
+		y(n) &= x(n) * h(n) \\
+		\iff Y(k) &= X(k)H(k)
+	\end{align}
+	
+	\item Repeat the previous exercise by computing $X(k), H(k)$ and $y(n)$ through FFT and 
+IFFT.
+	
+	\solution Download the following Python code that plots Fig. \ref{fig-6.4}.
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/6.4.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 6.4.py
+	\end{lstlisting}
+
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/6.4.png}
+		\caption{Plot of $y(n)$ by fast Fourier transform}
+		\label{fig-6.4}	
+	\end{figure}
+	
+	The plot is exactly the same as that obtained in Fig. \ref{fig-3.2}
+	
+	\item Wherever possible, express all the above equations as matrix equations.
+	
+	\solution
+	\begin{align}
+		\vec{x} &= \myvec{x_0 & x_1	 & \cdots & x_{N-1}}^\top \\
+		\vec{h} &= \myvec{x_0 & x_1	 & \cdots & x_{N-1}}^\top \\
+		\vec{y} &= \vec{x} \circledast \vec{h} \\
+		\myvec{y_1 \\ y_2 \\ \vdots \\ y_{2N - 1}} &= \myvec{
+			h_0 & 0 & 0 & \cdots & 0 \\
+			h_1 & h_0 & 0 & \cdots & 0 \\
+			h_2 & h_1 & h_0 & \cdots & 0 \\
+			\vdots & \vdots & \vdots & \ddots & \vdots \\
+			h_{N-1} & h_{N-2} & h_{N-3} & \cdots & h_0 \\
+			0 & h_{N-1} & h_{N-2} & \cdots & h_1 \\
+			0 & 0 & h_{N-1} & \cdots & h_2 \\
+			\vdots & \vdots & \vdots & \ddots & \vdots \\
+			0 & 0 & 0 & \cdots & h_{N-1}
+		}		
+		\myvec{x_1\\x_2\\ \vdots \\x_N}
+	\end{align}
+	
+	The convolution can be written using a Toeplitz matrix. 
+	
+	Consider the DFT matrix
+	\begin{align}
+		\vec{W} = \myvec{
+			1 & 1 & 1 & 1 & \cdots & 1 \\
+			1 & \omega & \omega^2 & \omega^3 & \cdots & \omega^{N-1} \\
+			1 & \omega^2 & \omega^4 & \omega^6 & \cdots & \omega^{2(N-1)} \\
+			1 & \omega^3 & \omega^6 & \omega^9 & \cdots & \omega^{3(N-1)} \\
+			\vdots & \vdots & \vdots & \vdots & \ddots & \vdots \\ 
+			1 & \omega^{N-1} & \omega^{2(N-1)} & \omega^{3(N-1)} & \cdots & \omega^{(N-1)(N-1)}
+		}
+	\end{align}
+	
+	where $\omega = e^{-\j 2\pi/N}$ is the $N^{\mathrm{th}}$ root of unity
+	
+	Then the discrete Fourier transforms of $\vec{x}$ and $\vec{h}$ are given by
+	\begin{align}
+		\vec{X} &= \vec{W} \vec{x} \\
+		\vec{H} &= \vec{W} \vec{h}
+	\end{align}
+	
+	$\vec{Y}$ is then given by
+	\begin{equation}
+		\vec{Y} = \vec{X} \circ \vec{H}
+	\end{equation}
+	where $\circ$ denotes the Hadamard product (element-wise multiplication)
+	
+	But $\vec{Y}$ is the discrete Fourier transform of the filter output $\vec{y}$
+	\begin{equation}
+		\vec{Y} = \vec{W} \vec{y}
+	\end{equation}
+	
+	Thus,
+	\begin{align}
+		\vec{W} \vec{y} &= \vec{X} \circ \vec{H} \\
+		\implies \vec{y} &= \vec{W}^{-1} \brak{\vec{X} \circ \vec{H}} \\
+		&= \vec{W}^{-1} \brak{\vec{W} \vec{x} \circ \vec{W} \vec{h}}
+	\end{align}
+	This is the inverse discrete Fourier transform of $\vec{Y}$
+	
+	\item Verify the above equations by generating the DFT matrix in Python.
+	
+	\solution Download the following Python code that plots Fig. \ref{fig-6.5}
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/6.5.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 6.5.py
+	\end{lstlisting}
+	
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=0.8\columnwidth]{./figs/6.5.png}
+		%\caption{Plot of $y(n)$ by DFT matrix}
+		\label{fig-6.5}	
+	\end{figure}
+	
+	The plot is exactly the same as that obtained in Fig. \ref{fig-3.2}
+	
+	\item Compute the 8-point FFT in C.
+	
+	\solution
+
+	\end{enumerate}
+	
+	\section{FFT}
+	\begin{enumerate}[label=\thesection.\arabic*]
+	\item The DFT of $x(n)$ is given by
+    \begin{align}
+        X(k) \triangleq \sum_{n=0}^{N-1} x(n) e^{-j 2 \pi k n / N}, \quad k=0,1, \ldots, N-1
+    \end{align}
+	
+	\item Let 
+	\begin{align}
+		W_{N} = e^{-j2\pi/N} 
+	\end{align}
+		Then the $N$-point {\em DFT matrix} is defined as 
+	\begin{align}
+		\vec{F}_{N} = \sbrak{W_{N}^{mn}}, \quad 0 \le m,n \le N-1 
+	\end{align}
+	where $W_{N}^{mn}$ are the elements of $\vec{F}_{N}$.
+	
+	\item Let 
+	\begin{align}
+		\vec{I}_4 = \myvec{\vec{e}_4^{1} &\vec{e}_4^{2} &\vec{e}_4^{3} &\vec{e}_4^{4} }
+	\end{align}
+		be the $4\times 4$ identity matrix.  Then the 4 point {\em DFT permutation matrix} is defined as 
+	\begin{align}
+		\vec{P}_4 = \myvec{\vec{e}_4^{1} &\vec{e}_4^{3} &\vec{e}_4^{2} &\vec{e}_4^{4} }
+	\end{align}
+	
+	\item The 4 point {\em DFT diagonal matrix} is defined as 
+	\begin{align}
+		\vec{D}_4 = \mathrm{diag}\myvec{W_{8}^{0} & W_{8}^{1} & W_{8}^{2} & W_{8}^{3}}
+	\end{align}
+	
+	\item Show that 
+	\begin{equation}
+    		W_{N}^{2}=W_{N/2}
+	\end{equation}
+	
+	\solution
+	\begin{align}
+		W_N^2 &= \brak{\exp\brak{-j\frac{2\pi}{N}}}^2	 \\
+		&= \exp\brak{-j\frac{2\pi}{N} \cdot 2} \\
+		&= \exp\brak{-j\frac{2\pi}{N/2}} \\
+		&= W_{N/2}
+	\end{align}	 
+	
+%    \item Find $\vec{P}_6$.
+%    \item Find $\vec{D}_3$.
+    \item Show that 
+\begin{equation}
+	\vec{F}_{4}=
+\begin{bmatrix}
+	\vec{I}_{2} & \vec{D}_{2} \\
+\vec{I}_{2} & -\vec{D}_{2}
+\end{bmatrix}
+\begin{bmatrix}
+\vec{F}_{2} & 0 \\
+0 & \vec{F}_{2}
+\end{bmatrix}
+\vec{P}_{4}
+\end{equation}
+
+	\solution
+	\begin{align}
+		&\mymat{\vec{I}_2 & \vec{D}_2 \\ \vec{I}_2 & -\vec{D}_2} \mymat{\vec{F}_2 & 0 \\ 0 & \vec{F}_2} \\
+		= &\mymat{\vec{F}_2 & \vec{D}_2\vec{F}_2 \\ \vec{F}_2 & -\vec{D}_2\vec{F}_2}  \\
+		= &\mymat{\myvec{1&1\\1&-1} & \myvec{1&0\\0&-\j}\myvec{1&1\\1&-1} \\ \myvec{1&1\\1&-1} & - \myvec{1&0\\0&-\j}\myvec{1&1\\1&-1}} \\
+		= &\mymat{1 & 1 & 1 & 1 \\ 1 & -1 & -\j & \j \\ 1 & 1 & -1 & -1 \\ 1 & -1 & \j & -\j}
+	\end{align}		
+	because $W_2^0 = 1$ and $W_2^1 = e^{-\j\pi} = -1$
+	
+	Now
+	\begin{align}
+		&\mymat{\vec{I}_2 & \vec{D}_2 \\ \vec{I}_2 & -\vec{D}_2} \mymat{\vec{F}_2 & 0 \\ 0 & \vec{F}_2} \vec{P}_4 \\
+		= &\mymat{1 & 1 & 1 & 1 \\ 1 & -1 & -\j & \j \\ 1 & 1 & -1 & -1 \\ 1 & -1 & \j & -\j} \mymat{1 & 0 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1} \\
+		= &\mymat{1 & 1 & 1 & 1 \\ 1 & -\j & -1 & \j \\ 1 & -1 & 1 & -1 \\ 1 & \j & -1 & -\j} \\
+		= &\mymat{W_4^0 & W_4^0 & W_4^0 & W_4^0 \\ W_4^0 & W_4^1 & W_4^2 & W_4^3 \\ W_4^0 & W_4^2 & W_4^4 & W_4^6 \\ W_4^0 & W_4^3 & W_4^6 & W_4^9} \\
+		= &~\vec{F}_4
+	\end{align}
+	because
+	\begin{align}
+		W_4^0 &= 1 \\
+		W_4^1 &= e^{-\j\frac{\pi}{2}} = -\j \\
+		W_4^2 &= e^{-\j\pi} = -1 \\
+		W_4^3 &= e^{-\j\frac{3\pi}{2}} = \j \\
+		W_4^n &= W_4^{n - 4} &&\forall n \ge 4
+	\end{align}	 	
+	
+\item Show that 
+\begin{equation}
+\vec{F}_{N}=
+\begin{bmatrix}
+\vec{I}_{N/2} & \vec{D}_{N/2} \\
+\vec{I}_{N/2} & -\vec{D}_{N/2}
+\end{bmatrix}
+\begin{bmatrix}
+\vec{F}_{N/2} & 0 \\
+0 & \vec{F}_{N/2}
+\end{bmatrix}
+\vec{P}_{N}
+\end{equation}
+
+	\solution
+	\begin{align}
+		&\mymat{\vec{I}_{N/2} & \vec{D}_{N/2} \\ \vec{I}_{N/2} & -\vec{D}_{N/2}} \mymat{\vec{F}_{N/2} & 0 \\ 0 & \vec{F}_{N/2}}  \\
+		= &\mymat{\vec{F}_{N/2} & \vec{D}_{N/2}\vec{F}_{N/2} \\ \vec{F}_{N/2} & -\vec{D}_{N/2}\vec{F}_{N/2}}
+	\end{align}
+	
+	Now
+	\begin{align}
+		&\vec{D}_{N/2}\vec{F}_{N/2} \\
+		&= \mymat{W_N^0 & \cdots & 0 \\ \vdots & \ddots & \vdots \\ 0 & \cdots & W_N^{N/2-1}} \mymat{W_{N/2}^0 & \cdots & W_{N/2}^0 \\ \vdots & \ddots & \vdots \\ W_{N/2}^0 & \cdots & W_{N/2}^{(N/2 - 1)^2}} \\
+		&= \mymat{W_N^0 W_{N/2}^0 & \cdots & W_N^0 W_{N/2}^0 \\ \vdots & \ddots & \vdots \\ W_N^{N/2-1} W_{N/2}^0 & \cdots & W_N^{N/2-1} W_{N/2}^{(N/2 - 1)^2}} 
+	\end{align}
+	
+	Thus
+	\begin{align}
+		\brak{\vec{D}_{N/2}\vec{F}_{N/2}}_{ij} &= W_N^i W_{N/2}^{ij} \\
+		&= W_N^i W_N^{2ij} \\
+		&= W_N^{i(2j + 1)}
+	\end{align}
+	where $i, j = 0, \ldots, N/2 - 1$
+	
+	Therefore, $\vec{D}_{N/2}\vec{F}_{N/2}$ forms the first $N/2$ rows of the odd-indexed columns of $\vec{F}_N$
+	\begin{align}
+		W_N^{(i + N/2)(2j + 1)} &= \exp\brak{-\j \frac{2\pi}{N} (2j + 1)\brak{i + \frac{N}{2}}} \\
+		&= \exp\brak{-\j \brak{\frac{2\pi}{N} (2j + 1)i + (2j + 1)\pi}} \\
+		&= -\exp\brak{-\j \frac{2\pi}{N} (2j + 1)i} \\
+		&= -W_N^{i(2j + 1)}
+	\end{align}
+	
+	Thus, the remaining $N/2$ rows will be the negatives of the first $N/2$ rows
+	\begin{align}
+		\brak{\vec{F}_{N/2}}_{ij} &= W_{N/2}^{ij} \\
+		&= W_N^{i(2j)}
+	\end{align}
+	where $i, j = 0, \ldots, N/2 - 1$
+	
+	Therefore, $\vec{F}_{N/2}$ forms the first $N/2$ rows of the even-indexed columns of $\vec{F}_N$
+	\begin{align}
+		W_N^{(i + N/2)(2j)} &= \exp\brak{-\j \frac{2\pi}{N} (2j)\brak{i + \frac{N}{2}}} \\
+		&= \exp\brak{-\j \brak{\frac{2\pi}{N} (2j)i + (2j)\pi}} \\
+		&= \exp\brak{-\j \frac{2\pi}{N} (2j)i} \\
+		&= W_N^{i(2j)}
+	\end{align}
+	Thus, the remaining $N/2$ rows will be the same as the first $N/2$ rows
+	
+	Therefore
+	\begin{align}
+		\mymat{\vec{F}_{N/2} & \vec{D}_{N/2}\vec{F}_{N/2} \\ \vec{F}_{N/2} & -\vec{D}_{N/2}\vec{F}_{N/2}} = \vec{F}_N \vec{P}_N
+	\end{align}
+	where 
+	\begin{align}
+		\vec{P}_N = \myvec{\vec{e}_N^1 & \vec{e}_N^3 & \cdots & \vec{e}_N^{N-1} & \vec{e}_N^2 & \vec{e}_N^4 & \cdots & \vec{e}_N^N}
+	\end{align}
+	
+	Hence
+	\begin{align}
+		\mymat{\vec{F}_{N/2} & \vec{D}_{N/2}\vec{F}_{N/2} \\ \vec{F}_{N/2} & -\vec{D}_{N/2}\vec{F}_{N/2}} \vec{P}_N = \vec{F}_N \vec{P}_N^2 = \vec{F}_N \\
+		\therefore \vec{F}_N = \mymat{\vec{I}_{N/2} & \vec{D}_{N/2} \\ \vec{I}_{N/2} & -\vec{D}_{N/2}} \mymat{\vec{F}_{N/2} & 0 \\ 0 & \vec{F}_{N/2}} \vec{P}_N
+	\end{align}
+	for even $N$
+
+\item Find 
+    \begin{align}
+	     \vec{P}_4 \vec{x}
+    \end{align}
+    
+    \solution Let $\vec{x} = \myvec{x(0) & x(1) & x(2) & x(3)}^\top$
+    \begin{align}
+		\vec{P}_4 \vec{x} &= \mymat{1 & 0 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1} \mymat{x(0) \\ x(1) \\ x(2) \\ x(3)} \\
+		&= \mymat{x(0) \\ x(2) \\ x(1) \\ x(3)}
+    \end{align}
+
+\item Show that 
+    \begin{align}
+	    \vec{X} = \vec{F}_N \vec{x}
+	    \label{eq:dft-mat-def}
+    \end{align}
+		where $\vec{x}, \vec{X}$ are the vector representations of $x(n), X(k)$ respectively.
+		
+	\solution
+	\begin{align}
+        X(k) &= \sum_{n=0}^{N-1} x(n) e^{-j 2 \pi k n / N}, \quad k=0,1, \ldots, N-1 \\
+        \implies \vec{X} &= \mymat{\sum_{n=0}^{N-1} x(n) e^{-j 2 \pi  n (0) / N} \\ \vdots \\ \sum_{n=0}^{N-1} x(n) e^{-j 2 \pi  n (N-1) / N}} \\
+        &= \mymat{x(0) + \cdots + x(N-1) \\ \vdots \\ x(0) + \cdots + x(N-1) e^{-j 2 \pi (N-1)^2 / N}} 
+    \end{align}
+    \begin{align}
+    		\vec{X} &= x(0) \mymat{1 \\ \vdots \\ 1} + \cdots + x(N-1)\mymat{1 \\ \vdots \\ e^{-j 2 \pi (N-1)^2 / N}} \\
+    		&= \mymat{1 & \cdots & 1 \\ \vdots & \ddots & \vdots \\ 1 & \cdots & e^{-j 2 \pi (N-1)^2 / N}} \mymat{x(0) \\ \vdots \\ x(N-1)} \\
+    		&= \vec{F}_N \vec{x}
+    \end{align}
+		
+\item Derive the following step-by-step visualisation  of
+8-point FFTs into 4-point FFTs and so on
+\begin{equation}
+\begin{bmatrix}
+X(0) \\ 
+X(1) \\ 
+X(2) \\ 
+X(3)
+\end{bmatrix}
+=
+\begin{bmatrix}
+X_{1}(0) \\ 
+X_{1}(1)\\ 
+X_{1}(2)\\
+X_{1}(3)\\
+\end{bmatrix}
++
+\begin{bmatrix}
+W^{0}_{8} & 0 & 0 & 0\\
+0 & W^{1}_{8} & 0 & 0\\
+0 & 0 & W^{2}_{8} & 0\\
+0 & 0 & 0 & W^{3}_{8}
+\end{bmatrix}
+\begin{bmatrix}
+X_{2}(0) \\ 
+X_{2}(1) \\ 
+X_{2}(2) \\
+X_{2}(3)
+\end{bmatrix}
+\end{equation}
+\begin{equation}
+\begin{bmatrix}
+X(4) \\ 
+X(5) \\ 
+X(6) \\ 
+X(7)
+\end{bmatrix}
+=
+\begin{bmatrix}
+X_{1}(0) \\ 
+X_{1}(1)\\ 
+X_{1}(2)\\
+X_{1}(3)\\
+\end{bmatrix}
+-
+\begin{bmatrix}
+W^{0}_{8} & 0 & 0 & 0\\
+0 & W^{1}_{8} & 0 & 0\\
+0 & 0 & W^{2}_{8} & 0\\
+0 & 0 & 0 & W^{3}_{8}
+\end{bmatrix}
+\begin{bmatrix}
+X_{2}(0) \\ 
+X_{2}(1) \\ 
+X_{2}(2) \\
+X_{2}(3)
+\end{bmatrix}
+\end{equation}
+4-point FFTs into 2-point FFTs
+\begin{equation}
+\begin{bmatrix}
+X_{1}(0) \\ 
+X_{1}(1)\\ 
+\end{bmatrix}
+=
+\begin{bmatrix}
+X_{3}(0) \\ 
+X_{3}(1)\\ 
+\end{bmatrix}
++
+\begin{bmatrix}
+W^{0}_{4} & 0\\
+0 & W^{1}_{4}
+\end{bmatrix}
+\begin{bmatrix}
+X_{4}(0) \\ 
+X_{4}(1) \\ 
+\end{bmatrix}
+\end{equation}
+\begin{equation}
+\begin{bmatrix}
+X_{1}(2) \\ 
+X_{1}(3)\\ 
+\end{bmatrix}
+=
+\begin{bmatrix}
+X_{3}(0) \\ 
+X_{3}(1)\\ 
+\end{bmatrix}
+-
+\begin{bmatrix}
+W^{0}_{4} & 0\\
+0 & W^{1}_{4}
+\end{bmatrix}
+\begin{bmatrix}
+X_{4}(0) \\ 
+X_{4}(1) \\ 
+\end{bmatrix}
+\end{equation}
+\begin{equation}
+\begin{bmatrix}
+X_{2}(0) \\ 
+X_{2}(1)\\ 
+\end{bmatrix}
+=
+\begin{bmatrix}
+X_{5}(0) \\ 
+X_{5}(1)\\ 
+\end{bmatrix}
++
+\begin{bmatrix}
+W^{0}_{4} & 0\\
+0 & W^{1}_{4}
+\end{bmatrix}
+\begin{bmatrix}
+X_{6}(0) \\ 
+X_{6}(1) \\ 
+\end{bmatrix}
+\end{equation}
+\begin{equation}
+\begin{bmatrix}
+X_{2}(2) \\ 
+X_{2}(3)\\ 
+\end{bmatrix}
+=
+\begin{bmatrix}
+X_{5}(0) \\ 
+X_{5}(1)\\ 
+\end{bmatrix}
+-
+\begin{bmatrix}
+W^{0}_{4} & 0\\
+0 & W^{1}_{4}
+\end{bmatrix}
+\begin{bmatrix}
+X_{6}(0) \\ 
+X_{6}(1) \\ 
+\end{bmatrix}
+\end{equation}
+\begin{equation}
+\vec{P}_{8}
+\begin{bmatrix}
+x(0) \\ 
+x(1) \\ 
+x(2) \\ 
+x(3) \\ 
+x(4) \\ 
+x(5) \\
+x(6) \\
+x(7)
+\end{bmatrix}
+ = 
+\begin{bmatrix}
+x(0) \\ 
+x(2) \\ 
+x(4) \\ 
+x(6) \\
+x(1) \\ 
+x(3) \\ 
+x(5) \\
+x(7)
+\end{bmatrix}
+\end{equation}
+\begin{equation}
+\vec{P}_{4}
+\begin{bmatrix}
+x(0) \\ 
+x(2) \\ 
+x(4) \\ 
+x(6) \\
+\end{bmatrix}
+ = 
+\begin{bmatrix}
+x(0) \\ 
+x(4) \\ 
+x(2) \\
+x(6)
+\end{bmatrix}
+\end{equation}
+\begin{equation}
+\vec{P}_{4}
+\begin{bmatrix}
+x(1) \\ 
+x(3) \\ 
+x(5) \\
+x(7)
+\end{bmatrix}
+ = 
+\begin{bmatrix}
+x(1) \\ 
+x(5) \\ 
+x(3) \\ 
+x(7) \\
+\end{bmatrix}
+\end{equation}
+Therefore,
+\begin{equation}
+\begin{bmatrix}
+X_{3}(0) \\ 
+X_{3}(1)\\ 
+\end{bmatrix}
+= \vec{F}_{2}
+\begin{bmatrix}
+x(0) \\ 
+x(4) \\ 
+\end{bmatrix}
+\end{equation}
+\begin{equation}
+\begin{bmatrix}
+X_{4}(0) \\ 
+X_{4}(1)\\ 
+\end{bmatrix}
+= \vec{F}_{2}
+\begin{bmatrix}
+x(2) \\ 
+x(6) \\ 
+\end{bmatrix}
+\end{equation}
+\begin{equation}
+\begin{bmatrix}
+X_{5}(0) \\ 
+X_{5}(1)\\ 
+\end{bmatrix}
+= \vec{F}_{2}
+\begin{bmatrix}
+x(1) \\ 
+x(5) \\ 
+\end{bmatrix}
+\end{equation}
+\begin{equation}
+\begin{bmatrix}
+X_{6}(0) \\ 
+X_{6}(1)\\ 
+\end{bmatrix}
+= \vec{F}_{2}
+\begin{bmatrix}
+x(3) \\ 
+x(7) \\ 
+\end{bmatrix}
+\end{equation}
+
+	\solution 
+	\begin{align}
+        X(k) &= \sum_{n=0}^7 x(n) e^{-j 2 \pi k n / 8}, \quad k=0, \ldots, 7\\
+        &= \sum_{n=0}^7 x(n) W_8^{kn} \\
+        &= \sum_{n \text{ is even}}x(n) W_8^{kn} + \sum_{n \text{ is odd}}x(n) W_8^{kn} \\
+        &= \sum_{m=0}^3 x(2m) W_8^{2km} + \sum_{m=0}^3 x(2m+1) W_8^{2km + k}
+    \end{align}	
+    
+    Now substitute $W_8^2 = W_4$
+    \begin{align}
+    		X(k) = \sum_{m=0}^3 x(2m) W_4^{km} + W_8^k \sum_{m=0}^3 x(2m+1) W_4^{km}
+    \end{align}
+    
+    Consider
+    \begin{align}
+    		x_1(n) = \cbrak{x(0), x(2), x(4), x(6)} \\
+    		x_2(n) = \cbrak{x(1), x(3), x(5), x(7)}
+    \end{align}
+    
+    Thus
+    \begin{align}
+    		X(k) = X_1(k) + W_8^k X_2(k) \qquad k = 0,\ldots,7
+    \end{align}
+    
+    Now, $X_1(k)$ and $X_2(k)$ are $4$-point DFTs which means they are periodic with period $4$
+    \begin{align}
+    		X(k+4) &= X_1(k+4) + W_8^{k+4} X_2(k+4) \\
+    		&= X_1(k) + e^{-\j 2\pi(k+4)/8} X_2(k) \\
+    		&= X_1(k) + e^{-\j (2\pi k/8 + \pi)} X_2(k) \\
+    		&= X_1(k) - e^{-\j 2\pi k/8 } X_2(k) \\
+    		&= X_1(k) - W_8^k X_2(k)
+    \end{align}
+    
+    Therefore, for $k=0,1,2,3$
+    \begin{align}
+    		X(k) = X_1(k) + W_8^k X_2(k)  \\
+    		X(k+4) = X_1(k) - W_8^k X_2(k) 
+    \end{align}
+    
+    which is the same as
+    \begin{equation}
+\begin{bmatrix}
+X(0) \\ 
+X(1) \\ 
+X(2) \\ 
+X(3)
+\end{bmatrix}
+=
+\begin{bmatrix}
+X_{1}(0) \\ 
+X_{1}(1)\\ 
+X_{1}(2)\\
+X_{1}(3)\\
+\end{bmatrix}
++
+\begin{bmatrix}
+W^{0}_{8} & 0 & 0 & 0\\
+0 & W^{1}_{8} & 0 & 0\\
+0 & 0 & W^{2}_{8} & 0\\
+0 & 0 & 0 & W^{3}_{8}
+\end{bmatrix}
+\begin{bmatrix}
+X_{2}(0) \\ 
+X_{2}(1) \\ 
+X_{2}(2) \\
+X_{2}(3)
+\end{bmatrix}
+\end{equation}
+\begin{equation}
+\begin{bmatrix}
+X(4) \\ 
+X(5) \\ 
+X(6) \\ 
+X(7)
+\end{bmatrix}
+=
+\begin{bmatrix}
+X_{1}(0) \\ 
+X_{1}(1)\\ 
+X_{1}(2)\\
+X_{1}(3)\\
+\end{bmatrix}
+-
+\begin{bmatrix}
+W^{0}_{8} & 0 & 0 & 0\\
+0 & W^{1}_{8} & 0 & 0\\
+0 & 0 & W^{2}_{8} & 0\\
+0 & 0 & 0 & W^{3}_{8}
+\end{bmatrix}
+\begin{bmatrix}
+X_{2}(0) \\ 
+X_{2}(1) \\ 
+X_{2}(2) \\
+X_{2}(3)
+\end{bmatrix}
+\end{equation}
+
+	Similarly, we can divide $x_1(n)$ into 
+	\begin{align}
+		x_3(n) = \cbrak{x(0), x(4)} \\
+		x_4(n) = \cbrak{x(2), x(6)}
+	\end{align}
+	i.e.,
+	\begin{align}
+		\mymat{X_3(0) \\ X_3(1)} = \vec{F}_2 \mymat{x(0) \\ x(4)} \\
+		\mymat{X_4(0) \\ X_4(1)} = \vec{F}_2 \mymat{x(2) \\ x(6)}
+	\end{align}
+	to get
+	\begin{align}
+		X_1(k) = X_3(k) + W_4^k X_4(k) \\
+		X_1(k + 2) = X_3(k) - W_4^k X_4(k) 
+	\end{align}
+	for $k = 0, 1$
+	\begin{equation}
+\begin{bmatrix}
+X_{1}(0) \\ 
+X_{1}(1)\\ 
+\end{bmatrix}
+=
+\begin{bmatrix}
+X_{3}(0) \\ 
+X_{3}(1)\\ 
+\end{bmatrix}
++
+\begin{bmatrix}
+W^{0}_{4} & 0\\
+0 & W^{1}_{4}
+\end{bmatrix}
+\begin{bmatrix}
+X_{4}(0) \\ 
+X_{4}(1) \\ 
+\end{bmatrix}
+\end{equation}
+\begin{equation}
+\begin{bmatrix}
+X_{1}(2) \\ 
+X_{1}(3)\\ 
+\end{bmatrix}
+=
+\begin{bmatrix}
+X_{3}(0) \\ 
+X_{3}(1)\\ 
+\end{bmatrix}
+-
+\begin{bmatrix}
+W^{0}_{4} & 0\\
+0 & W^{1}_{4}
+\end{bmatrix}
+\begin{bmatrix}
+X_{4}(0) \\ 
+X_{4}(1) \\ 
+\end{bmatrix}
+\end{equation}
+
+	And on dividing $x_2(n)$ into
+	\begin{align}
+		x_5(n) = \cbrak{x(1), x(5)} \\
+		x_6(n) = \cbrak{x(3), x(7)}
+	\end{align}
+	i.e.,
+	\begin{align}
+		\mymat{X_5(0) \\ X_5(1)} = \vec{F}_2 \mymat{x(1) \\ x(5)} \\
+		\mymat{X_6(0) \\ X_6(1)} = \vec{F}_2 \mymat{x(3) \\ x(7)}
+	\end{align}
+	to get
+	\begin{align}
+		X_2(k) = X_5(k) + W_4^k X_6(k) \\
+		X_2(k + 2) = X_5(k) - W_4^k X_6(k) 
+	\end{align}
+	for $k = 0, 1$
+\begin{equation}
+\begin{bmatrix}
+X_{2}(0) \\ 
+X_{2}(1)\\ 
+\end{bmatrix}
+=
+\begin{bmatrix}
+X_{5}(0) \\ 
+X_{5}(1)\\ 
+\end{bmatrix}
++
+\begin{bmatrix}
+W^{0}_{4} & 0\\
+0 & W^{1}_{4}
+\end{bmatrix}
+\begin{bmatrix}
+X_{6}(0) \\ 
+X_{6}(1) \\ 
+\end{bmatrix}
+\end{equation}
+\begin{equation}
+\begin{bmatrix}
+X_{2}(2) \\ 
+X_{2}(3)\\ 
+\end{bmatrix}
+=
+\begin{bmatrix}
+X_{5}(0) \\ 
+X_{5}(1)\\ 
+\end{bmatrix}
+-
+\begin{bmatrix}
+W^{0}_{4} & 0\\
+0 & W^{1}_{4}
+\end{bmatrix}
+\begin{bmatrix}
+X_{6}(0) \\ 
+X_{6}(1) \\ 
+\end{bmatrix}
+\end{equation}
+	
+\item For 
+    \begin{align}
+	    \vec{x} = \myvec{1\\2\\3\\4\\2\\1}
+        \label{eq:equation1}
+    \end{align}
+    compte the DFT  
+		using 
+	    \eqref{eq:dft-mat-def}
+	    
+	\solution Download the following Python code that plots Fig. \ref{fig-7.11}.
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/7.11.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 7.11.py
+	\end{lstlisting}
+
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/7.11.png}
+		\caption{Plot of the discrete fourier transform of $\vec{x}$ using the DFT matrix}
+		\label{fig-7.11}	
+	\end{figure}
+	
+	
+    \item Repeat the above exercise using the FFT
+	    after zero padding $\vec{x}$.
+%	    \eqref{eq:fft-mat-def}
+
+	\solution Download the following Python code that plots Fig. \ref{fig-7.12}.
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/7.12.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 7.12.py
+	\end{lstlisting}
+
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/7.12.png}
+		\caption{Plot of the fast fourier transform of $\vec{x}$ after zero padding}
+		\label{fig-7.12}	
+	\end{figure}
+
+\item Write a C program to compute the 8-point FFT. 
+	
+	\solution Download the following C codes that generate the values of $X(k)$ using $8$-point FFT
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/header.h
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/7.13.c
+	\end{lstlisting}
+	
+	Compile and run the C program by executing the following
+	\begin{lstlisting}
+		cc -lm 7.13.c
+		./a.out
+	\end{lstlisting}
+	
+	Download the following Python code that plots Fig. \ref{fig-7.13} using the data generated by the above C code
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/7.13.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 7.13.py
+	\end{lstlisting}
+
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/7.13.png}
+		\caption{Plot of $\vec{X}$ by $8$-point FFT}
+		\label{fig-7.13}	
+	\end{figure}
+	
+	\item Compare and determine the running time complexities of FFT/IFFT and convolution graphically
+	
+	\solution Download the following C codes that measure the running times of both the algorithms
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/header.h
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/7.14.c
+	\end{lstlisting}
+	
+	Compile and run the C program by executing the following
+	\begin{lstlisting}
+		cc -lm 7.14.c
+		./a.out
+	\end{lstlisting}
+	
+	Download the following Python code that plots Fig. \ref{fig-7.14} using the running times generated by the C code and fits them to appropriate functions of the input size
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/7.14.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 7.14.py
+	\end{lstlisting}
+
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/7.14.png}
+		\caption{Plot of the running times of FFT/IFFT and convolution}
+		\label{fig-7.14}	
+	\end{figure}
+	
+	From the plot, it is evident that the time complexity of FFT/IFFT is $O(n \log n)$ and that of convolution is $O(n^2)$
+	
+	
+	\end{enumerate}
+	
+	\section{Exercises}
+	Answer the following questions by looking at the python code in Problem \ref{prob:output}
+	
+	\begin{enumerate}[label=\thesection.\arabic*]
+	\item The command
+	\begin{lstlisting}
+		output_signal = signal.lfilter(b, a, input_signal)
+	\end{lstlisting}
+	in Problem \ref{prob:output} is executed through the following difference equation
+	\begin{equation}
+		\label{eq:iir_filter_gen}
+ 		\sum _{m=0}^{M}a\brak{m}y\brak{n-m}=\sum _{k=0}^{N}b\brak{k}x\brak{n-k}
+	\end{equation}
+	where the input signal is $x(n)$ and the output signal is $y(n)$ with initial values all 0. Replace \textbf{signal.filtfilt} with your own routine and verify.
+	
+	\solution On taking the $Z$-transform on both sides of the difference equation
+	\begin{align}
+		\sum _{m=0}^{M}a\brak{m} z^{-m} Y(z) &= \sum _{k=0}^{N}b\brak{k} z^{-k} X(z) \\
+		\implies H(z) = \frac{Y(z)}{X(z)} &= \frac{\sum _{k=0}^{N}b\brak{k} z^{-k}}{\sum _{m=0}^{M}a\brak{m} z^{-m}}
+	\end{align}
+	
+	For obtaining the discrete Fourier transform, put $z = \j \frac{2\pi i}{I}$ where $I$ is the length of the input signal and $i = 0, 1, \ldots, I-1$
+	
+	Download the following Python code that does the above
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/7.1.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 7.1.py
+	\end{lstlisting}
+	
+	\item Repeat all the exercises in the previous sections for the above $a$ and $b$
+	
+	\solution The polynomial coefficients obtained are
+	\begin{align}
+		\vec{a} = \myvec{1.000 \\ -2.519 \\ 2.561 \\ -1.206 \\ 0.220} \qquad
+		\vec{b} = \myvec{0.003 \\ 0.014 \\ 0.021 \\ 0.014 \\ 0.003}
+	\end{align}
+	
+	The difference equation is then given by
+	\begin{equation}
+		\vec{a}^\top \vec{y} = \vec{b}^\top \vec{x} 
+	\end{equation}
+	
+	where
+	\begin{align}
+		\vec{y} = \myvec{y(n) \\ y(n-1) \\ y(n-2) \\ y(n-3) \\ y(n-4)} \qquad
+		\vec{x} = \myvec{x(n) \\ x(n-1) \\ x(n-2) \\ x(n-3) \\ x(n-4)}
+	\end{align}
+	
+	We have
+	\begin{equation}
+		H(z) = \frac{Y(z)}{X(z)} = \frac{\sum _{k=0}^{N}b\brak{k} z^{-k}}{\sum _{m=0}^{M}a\brak{m} z^{-m}}
+	\end{equation}
+	
+	By using partial fraction decomposition, we can write this as
+	\begin{equation}
+		H(z) = \sum_i \frac{r(i)}{1-p(i)z^{-1}} + \sum_j k(j)z^{-j}
+	\end{equation}
+	
+	On taking the inverse $Z$-transform on both sides by using \eqref{eq:anun}
+	\begin{align}
+		H(z) &\ztrans h(n) \\
+		\frac{1}{1-p(i)z^{-1}} &\ztrans \brak{p(i)}^nu(n) \\
+		z^{-j} &\ztrans \delta(n-j) 
+	\end{align}
+	
+	Thus
+	\begin{align}
+		h(n) = \sum_i r(i)\brak{p(i)}^nu(n) + \sum_j k(j)\delta(n-j)
+	\end{align}
+	
+	Download the following Python code
+	\begin{lstlisting}
+		wget https://github.com/varun-thatikonda/EE3900/Sound_Assignment/codes/7.2.py
+	\end{lstlisting}
+	
+	Run the code by executing
+	\begin{lstlisting}
+		python 7.2.py
+	\end{lstlisting}
+	
+	The above code outputs the values of $r(i), p(i), k(i)$
+	\begin{comment}
+	\begin{multline}
+		h(n) = 
+		 (0.24 - 0.71\j)(0.56 + 0.14\j)^n u(n) \\
+		+ (0.24 + 0.71\j)(0.56 - 0.14\j)^n u(n) \\
+		+ (-0.25 + 0.12\j)(0.70 + 0.41\j)^n u(n) \\
+		+ (-0.25 - 0.12\j)(0.70 - 0.41\j)^n u(n) \\
+		+ 0.016\delta(n)
+	\end{multline}
+	\end{comment}
+	\begin{multline}
+		h(n) = 
+			\Re\brak{(0.24 - 0.71\j)(0.56 + 0.14\j)^n} u(n) \\
+			+ \Re\brak{(0.24 + 0.71\j)(0.56 - 0.14\j)^n} u(n) \\
+			+ 0.016\delta(n)
+	\end{multline}
+	
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/7.2.1.png}
+		\caption{Plot of $y(n)$}
+		\label{fig-7.2.1}	
+	\end{figure}
+	
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/7.2.2.png}
+		\caption{Plot of $\abs{H(e^{\j\omega})}$}
+		\label{fig-7.2.2}	
+	\end{figure}
+	
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[width=\columnwidth]{./figs/7.2.3.png}
+		\caption{Plot of $h(n)$}
+		\label{fig-7.2.3}	
+	\end{figure}
+	
+	\item What is the sampling frequency of the input signal?
+	
+	\solution The sampling frequency of the input signal is \SI{44100}{\hertz} = \SI{44.1}{\kilo\hertz}
+	
+	\item What is the type, order and cutoff frequency of the above Butterworth filter?
+	
+	\solution 
+	
+	Type: low-pass
+	
+	Order: 4
+	
+	Cutoff frequency: \SI{4000}{\hertz} = \SI{4}{\kilo\hertz}
+	
+	\item Modify the code with different input parameters to get the best possible output.
+	
+	\solution
+	
+	Order: 10
+	
+	Cutoff frequency: \SI{3000}{\hertz} = \SI{3}{\kilo\hertz}
+	
+	\end{enumerate}
+\end{document}
